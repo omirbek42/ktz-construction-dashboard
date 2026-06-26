@@ -1,0 +1,602 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Диспетчерская строительства КТЖ</title>
+<style>
+  :root{
+    --bg:#0a0f14;
+    --panel:#0f1822;
+    --panel2:#121d29;
+    --border:#1f3142;
+    --text:#dbe7f0;
+    --muted:#7c93a3;
+    --mono: 'Consolas','SF Mono',monospace;
+    --green:#27c46b;
+    --amber:#f2b134;
+    --red:#e6493f;
+    --blue:#4fa6e0;
+    --done:#6b7c8e;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:radial-gradient(circle at top,#0d1822,#070b0f 70%);
+    color:var(--text);
+    font-family:'Segoe UI',Arial,sans-serif;
+    min-height:100vh;
+  }
+  header{
+    padding:18px 28px;
+    border-bottom:1px solid var(--border);
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    background:linear-gradient(180deg,#0d1620,#0a1118);
+  }
+  header h1{
+    margin:0;
+    font-size:20px;
+    letter-spacing:.5px;
+  }
+  header h1 span{color:var(--blue);}
+  .tabs{display:flex;gap:8px;}
+  .tab-btn{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--muted);
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+  }
+  .tab-btn.active{color:var(--text);border-color:var(--blue);background:#142433;}
+
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(6,1fr);
+    gap:12px;
+    padding:18px 28px;
+  }
+  .sum-card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:8px;
+    padding:12px 14px;
+  }
+  .sum-card .label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+  .sum-card .value{font-family:var(--mono);font-size:24px;margin-top:4px;}
+  .sum-card.green .value{color:var(--green);}
+  .sum-card.amber .value{color:var(--amber);}
+  .sum-card.red .value{color:var(--red);}
+  .sum-card.done .value{color:var(--done);}
+
+  .toolbar{
+    display:flex;
+    gap:10px;
+    padding:0 28px 14px;
+    flex-wrap:wrap;
+    align-items:center;
+  }
+  .toolbar input, .toolbar select{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:8px 10px;
+    border-radius:6px;
+    font-size:13px;
+  }
+  .toolbar button{
+    background:var(--blue);
+    color:#06141f;
+    border:none;
+    padding:8px 16px;
+    border-radius:6px;
+    cursor:pointer;
+    font-weight:600;
+    font-size:13px;
+    margin-left:auto;
+  }
+
+  main{padding:0 28px 40px;}
+
+  /* CARDS */
+  .cards{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(360px,1fr));
+    gap:16px;
+  }
+  .card{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:16px;
+    position:relative;
+  }
+  .signal{
+    width:12px;height:12px;border-radius:50%;
+    display:inline-block;margin-right:8px;
+    box-shadow:0 0 8px currentColor;
+  }
+  .signal.green{background:var(--green);color:var(--green);}
+  .signal.amber{background:var(--amber);color:var(--amber);}
+  .signal.red{background:var(--red);color:var(--red);}
+  .signal.done{background:var(--done);color:var(--done);}
+  .card-title{font-size:16px;font-weight:600;display:flex;align-items:center;}
+  .card-region{font-size:12px;color:var(--muted);margin-left:20px;}
+  .stages{margin:12px 0;}
+  .stage-row{display:flex;align-items:center;gap:8px;margin-bottom:4px;}
+  .stage-name{width:140px;font-size:11px;color:var(--muted);}
+  .stage-bar{flex:1;height:8px;background:#0a1219;border-radius:4px;overflow:hidden;}
+  .stage-fill{height:100%;background:var(--blue);}
+  .stage-pct{width:36px;font-family:var(--mono);font-size:11px;text-align:right;}
+  .metrics-row{display:flex;justify-content:space-between;font-family:var(--mono);font-size:13px;margin:10px 0;}
+  .metrics-row div span{color:var(--muted);font-family:inherit;font-size:11px;display:block;}
+  .block{
+    border-radius:6px;
+    padding:8px 10px;
+    font-size:12px;
+    margin-top:8px;
+    white-space:pre-wrap;
+  }
+  .block.risk{background:#2a1414;border-left:3px solid var(--red);color:#f3c6c1;}
+  .block.mitigation{background:#13241a;border-left:3px solid var(--green);color:#c6f3d4;}
+  .block-label{font-size:10px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;letter-spacing:.5px;}
+  .card-actions{display:flex;gap:8px;margin-top:12px;}
+  .card-actions button{
+    flex:1;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:6px;border-radius:6px;cursor:pointer;font-size:12px;
+  }
+  .card-actions button.del{color:var(--red);}
+
+  /* TABLE */
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{border:1px solid var(--border);padding:6px 8px;text-align:left;}
+  th{background:var(--panel2);color:var(--muted);font-size:11px;text-transform:uppercase;position:sticky;top:0;}
+  td input, td select, td textarea{
+    background:transparent;border:none;color:var(--text);width:100%;font-size:12px;font-family:inherit;
+  }
+  td input.editable, td select.editable, td textarea.editable{background:#142030;}
+  td.calc{color:var(--muted);background:#0c1319;}
+  tr:hover{background:#0d1924;}
+  .status-pill{padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;}
+  .status-pill.green{background:#123524;color:var(--green);}
+  .status-pill.amber{background:#3a2c0f;color:var(--amber);}
+  .status-pill.red{background:#3a1413;color:var(--red);}
+  .status-pill.done{background:#1c2530;color:var(--done);}
+  .table-wrap{overflow:auto;max-height:70vh;border:1px solid var(--border);border-radius:8px;}
+
+  .hidden{display:none !important;}
+
+  /* MODAL */
+  .modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.6);
+    display:flex;align-items:center;justify-content:center;z-index:50;
+  }
+  .modal{
+    background:var(--panel);border:1px solid var(--border);border-radius:10px;
+    padding:20px;width:480px;max-height:85vh;overflow:auto;
+  }
+  .modal h2{margin-top:0;font-size:16px;}
+  .form-row{margin-bottom:10px;}
+  .form-row label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px;}
+  .form-row input, .form-row select, .form-row textarea{
+    width:100%;background:var(--panel2);border:1px solid var(--border);
+    color:var(--text);padding:7px 8px;border-radius:6px;font-size:13px;font-family:inherit;
+  }
+  .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;}
+  .modal-actions button{padding:8px 16px;border-radius:6px;border:none;cursor:pointer;font-size:13px;}
+  .modal-actions .save{background:var(--blue);color:#06141f;font-weight:600;}
+  .modal-actions .cancel{background:var(--panel2);color:var(--text);border:1px solid var(--border);}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🚦 Диспетчерская <span>строительства КТЖ</span></h1>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="cards">Карточки</button>
+    <button class="tab-btn" data-tab="table">Таблица</button>
+  </div>
+</header>
+
+<div class="summary" id="summary"></div>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Поиск по названию / региону...">
+  <select id="filterRegion"><option value="">Все регионы</option></select>
+  <select id="filterStatus">
+    <option value="">Все статусы</option>
+    <option value="green">В графике</option>
+    <option value="amber">Риск отставания</option>
+    <option value="red">Отставание</option>
+    <option value="done">Завершён</option>
+  </select>
+  <button id="addBtn">+ Новый объект</button>
+</div>
+
+<main>
+  <div id="cardsView" class="cards"></div>
+  <div id="tableView" class="table-wrap hidden">
+    <table>
+      <thead>
+        <tr>
+          <th>Название</th><th>Регион</th><th>Длина, км</th>
+          <th>Начало</th><th>План</th><th>Прогноз</th>
+          <th>Бюджет план %</th><th>Бюджет факт %</th>
+          <th>Земл.полотно</th><th>Иск.сооружения</th><th>Укладка ВСП</th><th>Электр./СЦБ</th><th>Станции</th>
+          <th>Готовность %</th><th>Отставание, дн.</th>
+          <th>Статус</th><th>Обновлено</th>
+          <th>Риск</th><th>Мероприятия</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+  </div>
+</main>
+
+<div id="modalRoot"></div>
+
+<script>
+const STORAGE_KEY = 'ktz_dashboard_v1';
+const REGIONS = ['Туркестанская область','Жетысуская область','Карагандинская область','Алматинская область','Жамбылская область','Кызылординская область'];
+const STAGE_NAMES = ['Земляное полотно','Искусственные сооружения','Укладка ВСП','Электрификация и СЦБ','Станции'];
+const STATUS_LABEL = {green:'В графике',amber:'Риск отставания',red:'Отставание',done:'Завершён'};
+
+function seedData(){
+  return [
+    {
+      id: cryptoId(),
+      name: 'Дарбаза – Мактаарал (1 очередь)',
+      region: 'Туркестанская область',
+      length: 87,
+      startdate: '2024-03-01',
+      plandate: '2026-12-31',
+      forecastdate: '2027-02-15',
+      budgetplan: 62, budgetfact: 54,
+      stages: [70, 55, 48, 30, 40],
+      status: 'amber',
+      updated: '2026-06-26',
+      risk: 'Отставание по поставке материалов ВСП от смежного подрядчика, частичная задержка отвода земель на отдельных участках.',
+      mitigation: 'Усилен контроль графика поставок, проведено совещание с подрядчиком, согласован резервный поставщик щебня.'
+    },
+    {
+      id: cryptoId(),
+      name: 'Мойынты – Кызылжар',
+      region: 'Карагандинская область',
+      length: 124,
+      startdate: '2023-09-01',
+      plandate: '2026-11-30',
+      forecastdate: '2026-11-20',
+      budgetplan: 78, budgetfact: 80,
+      stages: [95, 88, 82, 70, 65],
+      status: 'green',
+      updated: '2026-06-26',
+      risk: '',
+      mitigation: ''
+    },
+    {
+      id: cryptoId(),
+      name: 'Бахты – Аягоз (1 очередь)',
+      region: 'Жетысуская область',
+      length: 152,
+      startdate: '2023-05-01',
+      plandate: '2026-09-30',
+      forecastdate: '2027-04-30',
+      budgetplan: 70, budgetfact: 48,
+      stages: [60, 40, 30, 15, 20],
+      status: 'red',
+      updated: '2026-06-27',
+      risk: 'Многосубподрядная схема (25 участков, 18 подрядчиков) приводит к рассинхронизации темпов. Существенное отставание по электрификации и СЦБ, нехватка квалифицированной рабочей силы на отдельных участках.',
+      mitigation: 'Инициирован еженедельный штабной контроль по каждому участку, привлечены дополнительные бригады на критический путь, рассматривается пересмотр директивного срока.'
+    },
+    {
+      id: cryptoId(),
+      name: 'Обводная линия Алматы (Жетыген – Казыбек бек)',
+      region: 'Алматинская область',
+      length: 55,
+      startdate: '2024-01-15',
+      plandate: '2027-06-30',
+      forecastdate: '2027-06-30',
+      budgetplan: 35, budgetfact: 33,
+      stages: [50, 35, 20, 10, 5],
+      status: 'green',
+      updated: '2026-06-26',
+      risk: '',
+      mitigation: ''
+    }
+  ];
+}
+
+function cryptoId(){
+  return 'p_' + Math.random().toString(36).slice(2,10) + Date.now().toString(36);
+}
+
+let projects = loadData();
+let currentTab = 'cards';
+let editingId = null;
+
+function loadData(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) return JSON.parse(raw);
+  }catch(e){}
+  const seeded = seedData();
+  saveData(seeded);
+  return seeded;
+}
+
+function saveData(data){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data || projects));
+}
+
+function avgStages(p){
+  const s = p.stages || [0,0,0,0,0];
+  return Math.round(s.reduce((a,b)=>a+Number(b||0),0)/s.length);
+}
+
+function delayDays(p){
+  if(!p.plandate || !p.forecastdate) return null;
+  const d = (new Date(p.forecastdate) - new Date(p.plandate)) / 86400000;
+  return Math.round(d);
+}
+
+function daysToDeadline(p){
+  if(!p.plandate) return null;
+  const d = (new Date(p.plandate) - new Date()) / 86400000;
+  return Math.round(d);
+}
+
+function populateRegionFilter(){
+  const sel = document.getElementById('filterRegion');
+  sel.innerHTML = '<option value="">Все регионы</option>' +
+    REGIONS.map(r=>`<option value="${r}">${r}</option>`).join('');
+}
+
+function getFiltered(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const region = document.getElementById('filterRegion').value;
+  const status = document.getElementById('filterStatus').value;
+  return projects.filter(p=>{
+    if(region && p.region !== region) return false;
+    if(status && p.status !== status) return false;
+    if(q && !(p.name.toLowerCase().includes(q) || (p.region||'').toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+function renderSummary(){
+  const total = projects.length;
+  const counts = {green:0,amber:0,red:0,done:0};
+  let sumReady=0, sumBudget=0;
+  projects.forEach(p=>{
+    counts[p.status] = (counts[p.status]||0)+1;
+    sumReady += avgStages(p);
+    sumBudget += Number(p.budgetfact||0);
+  });
+  const avgReady = total ? Math.round(sumReady/total) : 0;
+  const avgBudget = total ? Math.round(sumBudget/total) : 0;
+  document.getElementById('summary').innerHTML = `
+    <div class="sum-card"><div class="label">Всего объектов</div><div class="value">${total}</div></div>
+    <div class="sum-card green"><div class="label">В графике</div><div class="value">${counts.green||0}</div></div>
+    <div class="sum-card amber"><div class="label">Риск отставания</div><div class="value">${counts.amber||0}</div></div>
+    <div class="sum-card red"><div class="label">Отставание</div><div class="value">${counts.red||0}</div></div>
+    <div class="sum-card done"><div class="label">Завершено</div><div class="value">${counts.done||0}</div></div>
+    <div class="sum-card"><div class="label">Готовность / Бюджет ср.</div><div class="value">${avgReady}% / ${avgBudget}%</div></div>
+  `;
+}
+
+function renderCards(){
+  const list = getFiltered();
+  const wrap = document.getElementById('cardsView');
+  if(!list.length){ wrap.innerHTML = '<p style="color:var(--muted)">Нет объектов, соответствующих фильтру.</p>'; return; }
+  wrap.innerHTML = list.map(p=>{
+    const ready = avgStages(p);
+    const delay = delayDays(p);
+    const toDeadline = daysToDeadline(p);
+    let deadlineText = '—';
+    if(toDeadline !== null){
+      deadlineText = toDeadline >= 0 ? `до срока ${toDeadline} дн.` : `просрочено на ${Math.abs(toDeadline)} дн.`;
+    }
+    return `
+    <div class="card" data-id="${p.id}">
+      <div class="card-title"><span class="signal ${p.status}"></span>${escapeHtml(p.name)}<span class="card-region">${escapeHtml(p.region||'')}</span></div>
+      <div class="stages">
+        ${p.stages.map((v,i)=>`
+          <div class="stage-row">
+            <div class="stage-name">${STAGE_NAMES[i]}</div>
+            <div class="stage-bar"><div class="stage-fill" style="width:${v}%"></div></div>
+            <div class="stage-pct">${v}%</div>
+          </div>`).join('')}
+      </div>
+      <div class="metrics-row">
+        <div><span>Готовность</span>${ready}%</div>
+        <div><span>Бюджет план/факт</span>${p.budgetplan}% / ${p.budgetfact}%</div>
+        <div><span>Срок</span>${p.plandate||'—'}</div>
+        <div><span>${deadlineText.startsWith('просрочено')?'Статус срока':'Статус срока'}</span>${deadlineText}</div>
+      </div>
+      ${p.risk ? `<div class="block risk"><div class="block-label">Риск отставания</div>${escapeHtml(p.risk)}</div>` : ''}
+      ${p.mitigation ? `<div class="block mitigation"><div class="block-label">Мероприятия</div>${escapeHtml(p.mitigation)}</div>` : ''}
+      <div class="card-actions">
+        <button class="edit" data-id="${p.id}">Изменить</button>
+        <button class="del" data-id="${p.id}">Удалить</button>
+      </div>
+    </div>`;
+  }).join('');
+  wrap.querySelectorAll('.edit').forEach(b=>b.addEventListener('click', ()=>openModal(b.dataset.id)));
+  wrap.querySelectorAll('.del').forEach(b=>b.addEventListener('click', ()=>deleteProject(b.dataset.id)));
+}
+
+function renderTable(){
+  const list = getFiltered();
+  const body = document.getElementById('tableBody');
+  body.innerHTML = list.map(p=>{
+    const ready = avgStages(p);
+    const delay = delayDays(p);
+    return `<tr data-id="${p.id}">
+      <td><input class="editable" data-field="name" value="${escapeAttr(p.name)}"></td>
+      <td><select class="editable" data-field="region">${REGIONS.map(r=>`<option value="${r}" ${r===p.region?'selected':''}>${r}</option>`).join('')}</select></td>
+      <td><input class="editable" data-field="length" type="number" value="${p.length||0}"></td>
+      <td><input class="editable" data-field="startdate" type="date" value="${p.startdate||''}"></td>
+      <td><input class="editable" data-field="plandate" type="date" value="${p.plandate||''}"></td>
+      <td><input class="editable" data-field="forecastdate" type="date" value="${p.forecastdate||''}"></td>
+      <td><input class="editable" data-field="budgetplan" type="number" min="0" max="100" value="${p.budgetplan||0}"></td>
+      <td><input class="editable" data-field="budgetfact" type="number" min="0" max="100" value="${p.budgetfact||0}"></td>
+      ${p.stages.map((v,i)=>`<td><input class="editable" data-field="stage${i}" type="number" min="0" max="100" value="${v}"></td>`).join('')}
+      <td class="calc">${ready}%</td>
+      <td class="calc">${delay===null?'—':delay}</td>
+      <td><select class="editable" data-field="status">
+            ${Object.keys(STATUS_LABEL).map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}
+          </select></td>
+      <td class="calc">${p.updated||'—'}</td>
+      <td><textarea class="editable" data-field="risk" rows="2">${escapeHtml(p.risk||'')}</textarea></td>
+      <td><textarea class="editable" data-field="mitigation" rows="2">${escapeHtml(p.mitigation||'')}</textarea></td>
+      <td><button class="del-row" data-id="${p.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  body.querySelectorAll('input,select,textarea').forEach(el=>{
+    el.addEventListener('change', e=>{
+      const tr = e.target.closest('tr');
+      const id = tr.dataset.id;
+      updateField(id, e.target.dataset.field, e.target.value);
+    });
+  });
+  body.querySelectorAll('.del-row').forEach(b=>b.addEventListener('click', ()=>deleteProject(b.dataset.id)));
+}
+
+function updateField(id, field, value){
+  const p = projects.find(x=>x.id===id);
+  if(!p) return;
+  if(field.startsWith('stage')){
+    const idx = Number(field.replace('stage',''));
+    p.stages[idx] = clampPct(value);
+  } else if(field === 'budgetplan' || field === 'budgetfact' || field === 'length'){
+    p[field] = field==='length' ? Number(value) : clampPct(value);
+  } else {
+    p[field] = value;
+  }
+  p.updated = new Date().toISOString().slice(0,10);
+  saveData();
+  renderAll();
+}
+
+function clampPct(v){
+  v = Number(v);
+  if(isNaN(v)) return 0;
+  return Math.max(0, Math.min(100, v));
+}
+
+function deleteProject(id){
+  if(!confirm('Удалить объект из портфеля?')) return;
+  projects = projects.filter(p=>p.id!==id);
+  saveData();
+  renderAll();
+}
+
+function escapeHtml(str){
+  return String(str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(str){ return escapeHtml(str); }
+
+function openModal(id){
+  editingId = id || null;
+  const p = id ? projects.find(x=>x.id===id) : {
+    name:'', region:REGIONS[0], length:0, startdate:'', plandate:'', forecastdate:'',
+    budgetplan:0, budgetfact:0, stages:[0,0,0,0,0], status:'green', risk:'', mitigation:'', updated: new Date().toISOString().slice(0,10)
+  };
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = `
+  <div class="modal-overlay">
+    <div class="modal">
+      <h2>${id?'Редактирование объекта':'Новый объект'}</h2>
+      <div class="form-row"><label>Название</label><input id="f_name" value="${escapeAttr(p.name)}"></div>
+      <div class="form-grid">
+        <div class="form-row"><label>Регион</label>
+          <select id="f_region">${REGIONS.map(r=>`<option value="${r}" ${r===p.region?'selected':''}>${r}</option>`).join('')}</select>
+        </div>
+        <div class="form-row"><label>Протяжённость, км</label><input id="f_length" type="number" value="${p.length||0}"></div>
+        <div class="form-row"><label>Дата начала</label><input id="f_startdate" type="date" value="${p.startdate||''}"></div>
+        <div class="form-row"><label>Плановая дата завершения</label><input id="f_plandate" type="date" value="${p.plandate||''}"></div>
+        <div class="form-row"><label>Прогнозная дата завершения</label><input id="f_forecastdate" type="date" value="${p.forecastdate||''}"></div>
+        <div class="form-row"><label>Статус</label>
+          <select id="f_status">${Object.keys(STATUS_LABEL).map(s=>`<option value="${s}" ${s===p.status?'selected':''}>${STATUS_LABEL[s]}</option>`).join('')}</select>
+        </div>
+        <div class="form-row"><label>Бюджет план, %</label><input id="f_budgetplan" type="number" min="0" max="100" value="${p.budgetplan||0}"></div>
+        <div class="form-row"><label>Бюджет факт, %</label><input id="f_budgetfact" type="number" min="0" max="100" value="${p.budgetfact||0}"></div>
+      </div>
+      ${STAGE_NAMES.map((n,i)=>`
+        <div class="form-row"><label>${n}, %</label><input id="f_stage${i}" type="number" min="0" max="100" value="${p.stages[i]||0}"></div>
+      `).join('')}
+      <div class="form-row"><label>Риск отставания</label><textarea id="f_risk" rows="3">${escapeHtml(p.risk||'')}</textarea></div>
+      <div class="form-row"><label>Мероприятия по сокращению отставания</label><textarea id="f_mitigation" rows="3">${escapeHtml(p.mitigation||'')}</textarea></div>
+      <div class="modal-actions">
+        <button class="cancel" id="cancelBtn">Отмена</button>
+        <button class="save" id="saveBtn">Сохранить</button>
+      </div>
+    </div>
+  </div>`;
+  document.getElementById('cancelBtn').addEventListener('click', closeModal);
+  document.getElementById('saveBtn').addEventListener('click', saveModal);
+}
+
+function closeModal(){
+  document.getElementById('modalRoot').innerHTML = '';
+  editingId = null;
+}
+
+function saveModal(){
+  const data = {
+    name: document.getElementById('f_name').value.trim() || 'Без названия',
+    region: document.getElementById('f_region').value,
+    length: Number(document.getElementById('f_length').value),
+    startdate: document.getElementById('f_startdate').value,
+    plandate: document.getElementById('f_plandate').value,
+    forecastdate: document.getElementById('f_forecastdate').value,
+    status: document.getElementById('f_status').value,
+    budgetplan: clampPct(document.getElementById('f_budgetplan').value),
+    budgetfact: clampPct(document.getElementById('f_budgetfact').value),
+    stages: STAGE_NAMES.map((_,i)=>clampPct(document.getElementById('f_stage'+i).value)),
+    risk: document.getElementById('f_risk').value,
+    mitigation: document.getElementById('f_mitigation').value,
+    updated: new Date().toISOString().slice(0,10)
+  };
+  if(editingId){
+    const idx = projects.findIndex(p=>p.id===editingId);
+    projects[idx] = {...projects[idx], ...data};
+  } else {
+    projects.push({id: cryptoId(), ...data});
+  }
+  saveData();
+  closeModal();
+  renderAll();
+}
+
+function renderAll(){
+  renderSummary();
+  if(currentTab==='cards') renderCards(); else renderTable();
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    document.getElementById('cardsView').classList.toggle('hidden', currentTab!=='cards');
+    document.getElementById('tableView').classList.toggle('hidden', currentTab!=='table');
+    renderAll();
+  });
+});
+
+document.getElementById('search').addEventListener('input', renderAll);
+document.getElementById('filterRegion').addEventListener('change', renderAll);
+document.getElementById('filterStatus').addEventListener('change', renderAll);
+document.getElementById('addBtn').addEventListener('click', ()=>openModal(null));
+
+populateRegionFilter();
+renderAll();
+</script>
+</body>
+</html>
